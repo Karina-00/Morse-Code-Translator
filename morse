@@ -1,0 +1,195 @@
+#!/bin/bash
+
+declare -A morse
+
+morse[0]='-----'
+morse[1]='.----'
+morse[2]='..---'
+morse[3]='...--'
+morse[4]='....-'
+morse[5]='.....'
+morse[6]='-....'
+morse[7]='--...'
+morse[8]='---..'
+morse[9]='----.'
+
+morse[A]='.-'
+morse[B]='-...'
+morse[C]='-.-.'
+morse[D]='-..'
+morse[E]='.'
+morse[F]='..-.'
+morse[G]='--.'
+morse[H]='....'
+morse[I]='..'
+morse[J]='.---'
+morse[K]='-.-'
+morse[L]='.-..'
+morse[M]='--'
+morse[N]='-.'
+morse[O]='---'
+morse[P]='.--.'
+morse[Q]='--.-'
+morse[R]='.-.'
+morse[S]='...'
+morse[T]='-'
+morse[U]='..-'
+morse[V]='...-'
+morse[W]='.--'
+morse[X]='-..-'
+morse[Y]='-.--'
+morse[Z]='--..'
+
+
+function help {
+	echo -e "\nThis script translates the Morse Code file to a text file and conversely.\n
+	Available flags:\n\t
+	-h -> help\n\t
+	-s FILE -> emits the audio version of the Morse Code given in the FILE\n\t
+	--alph FILE -> saves the Morse Alphabet to the given FILE\n\t
+	--totext FILE1 FILE2 -> reads the Morse Code from FILE1 and saves its translated version to FILE2\n\t
+	--tomorse FILE1 FILE2 -> the reverse of -t flag, translates text file FILE1 to the Morse Code and saves the result to FILE2\n\n"
+}
+
+
+function writable {
+	if [[ ! -w "$1" && -a "$1" ]]; then
+		echo "Cannot write to file $1, enable writing using: chmod a+w $1."
+		exit
+	fi
+}
+
+function readable {
+	if [[ ! -a "$1" ]]; then
+		echo "The file $1 does not exists."
+		exit
+	elif [[ ! -r "$1" ]]; then
+		echo "Cannot read from file $1, enable reading using: chmod a+r $1"
+		exit
+	fi
+}
+
+
+function sound {
+	file="$1"
+	readable "$file"
+	echo "Playing audio version of file $file..."
+	morse "$file"
+}
+
+
+function alphabet {
+	file="$1"
+	writable "$file"
+	> "$file"
+	echo "Writing the Morse Alphabet to file $file..."
+	
+	for letter in "${!morse[@]}"; do
+		echo "$letter --> ${morse[$letter]}" >> "$file"
+	done
+}
+
+
+function morse_to_text {
+	source="$1"
+	result="$2"
+	> temp
+	while IFS= read line
+	do
+		IFS=" "
+		read -a sentence <<< "$line"
+		
+		for sign in "${sentence[@]}"; do
+		
+			if [[ $sign == "/" ]]; then
+				echo $sign >> temp
+				
+			else
+				for letter in "${!morse[@]}"; do
+					if [[ "${morse[$letter]}" == "$sign" ]]; then
+						echo $letter >> temp
+						break
+					fi
+				done
+			fi
+		done
+	done < "$source"
+	
+	cat temp | tr "/" " " | tr -d "\n" > "$result"
+	echo "" >> "$result"
+	rm temp
+}
+
+
+function reverse {
+	source="$1"
+	result="$2"
+	> temp
+	
+	while read -rn1 c; do
+		c=${c^}
+		if [[ "${morse[@]}" =~ "${c}" ]]; then
+			echo "/" >> temp
+		else
+			echo "${morse[$c]}" >> temp 
+		fi
+	done < "$source"
+	
+	cat temp |	tr "\n" " " > "$result"
+	echo "" >> "$result"
+	rm temp
+}
+
+
+function translate {
+	readable "$1"
+	writable "$2"
+	
+	echo "Translating from file $1 to $2..."
+	> "$2"
+	
+	if [[ $3 == "r" ]]; then
+		reverse "$1" "$2"
+	else
+		morse_to_text "$1" "$2"
+	fi
+}
+
+
+
+for i in $(seq 1 $#); do
+	case "${!i}" in
+		-h)
+			help
+			;;
+		-s)
+			n=$(($i + 1))
+			sound "${!n}"
+			shift 1
+			;;
+		--alph)
+			n=$(($i + 1))
+			alphabet "${!n}"
+			shift 1
+			;;
+		--totext)
+			n=$(($i + 1))
+			m=$(($i + 2))
+			translate "${!n}" "${!m}"
+			shift 2
+			;;
+		--tomorse)
+			n=$(($i + 1))
+			m=$(($i + 2))
+			translate "${!n}" "${!m}" r
+			shift 2
+			;;
+		*)
+			echo -e "\nThere is no such command: ${!i}. Check flag -h for help.\n"
+			;;
+	esac
+	if (($i >= $#)); then
+		break
+	fi
+done
+
