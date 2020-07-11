@@ -48,23 +48,6 @@ echo "... --- ..." > morse-file
 ./morse --totext morse-file file
 ```
 
-## Examples:
-
-- using -h
-![Help](/readme_images/help.jpg =100x20)
-
-- using -s
-![Sound](/readme_images/sound.jpg =100x20)
-
-- using --alph
-![Alphabet](/readme_images/alphabet.jpg =100x20)
-
-- using --tomorse
-![Morse](/readme_images/tomorse.jpg =100x20)
-
-- using --totext
-![Text](/readme_images/totext.jpg =100x20)
-
 ## Built With
 
 -   Bash
